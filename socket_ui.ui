@@ -26,35 +26,41 @@
          <number>20</number>
         </property>
         <item row="0" column="0">
-         <widget class="QLabel" name="label">
+         <widget class="QLabel" name="l_host">
           <property name="text">
-           <string>IP Address</string>
+           <string>Host</string>
           </property>
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLineEdit" name="lineEdit_2">
+         <widget class="QLineEdit" name="input_host">
           <property name="text">
-           <string>127.0.0.1</string>
+           <string/>
+          </property>
+          <property name="placeholderText">
+           <string>ex) 127.0.0.1 or domain</string>
           </property>
          </widget>
         </item>
         <item row="1" column="0">
-         <widget class="QLabel" name="label_2">
+         <widget class="QLabel" name="l_port">
           <property name="text">
-           <string>PORT</string>
+           <string>Port</string>
           </property>
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLineEdit" name="lineEdit">
+         <widget class="QLineEdit" name="input_port">
           <property name="text">
-           <string>12345</string>
+           <string/>
+          </property>
+          <property name="placeholderText">
+           <string>ex) 8080 / default 4444</string>
           </property>
          </widget>
         </item>
         <item row="2" column="0">
-         <widget class="QLabel" name="lab_conn">
+         <widget class="QLabel" name="l_conn">
           <property name="font">
            <font>
             <pointsize>9</pointsize>
@@ -63,12 +69,12 @@
            </font>
           </property>
           <property name="text">
-           <string>STATUS</string>
+           <string>Status</string>
           </property>
          </widget>
         </item>
         <item row="2" column="1">
-         <widget class="QLabel" name="label_3">
+         <widget class="QLabel" name="label_status">
           <property name="font">
            <font>
             <pointsize>9</pointsize>
@@ -77,38 +83,35 @@
            </font>
           </property>
           <property name="text">
-           <string>connection/disconnection</string>
+           <string>Disconnection</string>
           </property>
          </widget>
         </item>
         <item row="3" column="0">
-         <widget class="QLabel" name="label_5">
+         <widget class="QLabel" name="l_type">
           <property name="text">
            <string>Type</string>
           </property>
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QLabel" name="label_6">
+         <widget class="QLabel" name="label_type">
           <property name="text">
-           <string>Client</string>
-          </property>
-          <property name="buddy">
-           <cstring>textEdit</cstring>
+           <string>Server</string>
           </property>
          </widget>
         </item>
        </layout>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="conn_btn">
         <property name="text">
-         <string>connection/disconnection</string>
+         <string>Disconnection</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QTextEdit" name="textEdit"/>
+       <widget class="QTextEdit" name="msg_all"/>
       </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -120,7 +123,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="lineEdit_3"/>
+         <widget class="QLineEdit" name="input_msg"/>
         </item>
         <item>
          <widget class="QPushButton" name="send_btn">
@@ -134,9 +137,6 @@
      </layout>
     </item>
    </layout>
-   <zorder>lineEdit_2</zorder>
-   <zorder>verticalLayoutWidget</zorder>
-   <zorder>formLayoutWidget</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -174,12 +174,12 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>server</string>
+    <string>server side</string>
    </property>
   </action>
   <action name="actionclient">
    <property name="text">
-    <string>client</string>
+    <string>Client side</string>
    </property>
   </action>
   <action name="actionarp">
@@ -199,22 +199,9 @@
   </action>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>pushButton</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>label_3</receiver>
-   <slot>update()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>214</x>
-     <y>192</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>156</x>
-     <y>129</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
+ <slots>
+  <slot>slot_conn()</slot>
+  <slot>slot_send()</slot>
+ </slots>
 </ui>

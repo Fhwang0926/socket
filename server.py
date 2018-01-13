@@ -1,4 +1,4 @@
-import sys, threading
+import threading
 from socket import *
 
 
