@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>829</height>
+    <height>817</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -199,9 +199,42 @@
   </action>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>conn_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>conn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>185</x>
+     <y>199</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>790</x>
+     <y>149</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>send_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>send()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>747</x>
+     <y>769</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>687</x>
+     <y>780</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
  <slots>
-  <slot>slot_conn()</slot>
-  <slot>slot_send()</slot>
+  <slot>conn()</slot>
+  <slot>send()</slot>
  </slots>
 </ui>

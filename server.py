@@ -7,6 +7,7 @@ global s
 global host
 global port
 global client
+global client_thread
 global data
 
 
@@ -24,7 +25,7 @@ def notice_server():
             notice = input("Notice : ")
             if (notice):
                 for client_c in client:
-                    who = client_c.getpeername()
+
                     client_c.send(("server : " +str(port)+ "`" + str(notice)).encode("utf-8"))
                 print("send notice")
 
@@ -43,7 +44,7 @@ mode = 1
 client = []#save connection object
 s = socket()
 host = gethostname()
-port = 12345
+port = 7878
 
 s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 # create socket

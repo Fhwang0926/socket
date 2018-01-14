@@ -40,8 +40,8 @@ global data
 
 data = ""
 s = socket()
-host = gethostname()
-port = 12345
+host = "127.0.0.1"
+port = 7878
 
 s.connect((host, port))
 print("ok ", host)

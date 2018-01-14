@@ -7,13 +7,31 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton
+import threading
+from socket import *
+from multiprocessing import Process
 
 class Ui_MainWindow(object):
+
+    global mode
+    global s
+    global host
+    global port
+    global client
+    global data
+    global client
+    global client_thread
+    global server
+
+    client = []
+    client_thread = []
+
+
+
+
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 830)
+        MainWindow.resize(800, 817)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.centralwidget)
@@ -61,11 +79,12 @@ class Ui_MainWindow(object):
         self.label_type.setObjectName("label_type")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.label_type)
         self.verticalLayout.addLayout(self.formLayout)
-        self.conn_btn = QtWidgets.QPushButton(self.centralwidget)
-        self.conn_btn.setObjectName("conn_btn")
-        self.verticalLayout.addWidget(self.conn_btn)
-        self.msg_all = QtWidgets.QTextEdit(self.centralwidget)
+        self.btn_conn = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_conn.setObjectName("btn_conn")
+        self.verticalLayout.addWidget(self.btn_conn)
+        self.msg_all = QtWidgets.QPlainTextEdit(self.centralwidget)
         self.msg_all.setObjectName("msg_all")
+        # self.msg_all.setReadOnly(True)
         self.verticalLayout.addWidget(self.msg_all)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
@@ -97,6 +116,7 @@ class Ui_MainWindow(object):
         self.actionserver.setChecked(True)
         self.actionserver.setObjectName("actionserver")
         self.actionclient = QtWidgets.QAction(MainWindow)
+        self.actionclient.setCheckable(True)
         self.actionclient.setObjectName("actionclient")
         self.actionarp = QtWidgets.QAction(MainWindow)
         self.actionarp.setObjectName("actionarp")
@@ -112,39 +132,146 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menu.menuAction())
         self.menubar.addAction(self.menuhttp.menuAction())
 
-        self.retranslateUi(MainWindow)
-        self.conn_btn.clicked.connect(self.slot_conn)
-        # self.send_btn.clicked.connect(MainWindow.slot_send)
+        self.retranslateUi(MainWindow) #set init setting or data
+
+        # self.send_btn.clicked.connect(MainWindow.send)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-
-
+    #set
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "SS[Sunday_Study] Networking Tool"))
         self.l_host.setText(_translate("MainWindow", "Host"))
         self.input_host.setPlaceholderText(_translate("MainWindow", "ex) 127.0.0.1 or domain"))
         self.l_port.setText(_translate("MainWindow", "Port"))
-        self.input_port.setPlaceholderText(_translate("MainWindow", "ex) 8080 / default 4444"))
+        self.input_port.setPlaceholderText(_translate("MainWindow", "ex) 8080 / default 7878"))
         self.l_conn.setText(_translate("MainWindow", "Status"))
-        self.label_status.setText(_translate("MainWindow", "Disconnection"))
+        self.label_status.setText(_translate("MainWindow", "stop"))
         self.l_type.setText(_translate("MainWindow", "Type"))
         self.label_type.setText(_translate("MainWindow", "Server"))
-        self.conn_btn.setText(_translate("MainWindow", "Start Connecting"))
+        self.btn_conn.setText(_translate("MainWindow", "Start"))
         self.label_4.setText(_translate("MainWindow", "msg"))
         self.send_btn.setText(_translate("MainWindow", "Send"))
         self.menu.setTitle(_translate("MainWindow", "socket"))
         self.menuhttp.setTitle(_translate("MainWindow", "send packet"))
-        self.actionserver.setText(_translate("MainWindow", "server side"))
+        self.actionserver.setText(_translate("MainWindow", "Server side"))
         self.actionclient.setText(_translate("MainWindow", "Client side"))
         self.actionarp.setText(_translate("MainWindow", "arp"))
         self.actionip.setText(_translate("MainWindow", "ip"))
         self.actionhttp.setText(_translate("MainWindow", "http"))
+        self.btn_conn.clicked.connect(self.conn)
+        self.actionclient.triggered.connect(self.set_client)
+        self.actionserver.triggered.connect(self.set_server)
 
 
-    def slot_conn(self):
+    def conn(self):
+        if self.label_status.text() != "running":
 
-        self.conn_btn.setText("Connectied")
+            if self.label_type.text() == "Server":
+                self.msg_all.setPlainText("Start "+str(self.label_type.text()))
+                self.label_status.setText("running")
+                self.btn_conn.setText("Server stop")
+                # self.server_mode()
+                self.server = threading.Thread(target=self.server_mode)
+                self.server.start()
+
+            else:
+                print("clint")
+        else:
+            self.server_exit()
+            self.server.stop()
+            self.server.join()
+            self.btn_conn.setText("Server start")
+            self.label_status.setText("stop")
+
+
+
+
+    def socket_common(self):
+        print("asdasd")
+    def set_server(self):
+        self.actionclient.setChecked(False)
+        self.actionserver.setChecked(True)
+        self.label_type.setText("Server")
+        self.label_4.setText("Notice")
+        self.btn_conn.setText("Server start")
+
+
+    def set_client(self):
+        self.actionclient.setChecked(True)
+        self.actionserver.setChecked(False)
+        self.label_type.setText("Client")
+        self.label_4.setText("msg")
+        self.btn_conn.setText("Start connect")
+
+    # msg data binding
+    def recive(self, conn):
+        while True:
+            data = conn.recv(1024).decode("utf-8")
+            if (data):
+                self.send(data)
+
+    def notice_server(self):
+        while 1:
+            if mode:
+                notice = input("Notice : ")
+                if (notice):
+                    for client_c in client:
+                        who = client_c.getpeername()
+                        client_c.send(("server : " + str(port) + "`" + str(notice)).encode("utf-8"))
+                    print("send notice")
+
+    # msg sending
+    def send(self, data):
+        if (data):
+            for client_c in client:
+                who = client_c.getpeername()
+                who_details = str(who[0]) + ":" + str(who[1])
+                client_c.send((who_details + "`" + str(data)).encode("utf-8"))
+                self.msg_all.appendPlainText(who_details + " <==== " + str(data))
+            mode = 1
+
+    def server_mode(self):
+
+        host = self.input_host.text() if self.input_host.text() else "127.0.0.1"
+        port = self.input_port.text() if self.input_port.text() else 7878
+        self.msg_all.appendPlainText("staring..... " + host + " : " + str(port))
+        s = socket()  # save connection object
+
+        s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        # create socket
+        s.bind((host, port))
+        # can client connection 5 client
+        s.listen(5)
+
+
+        while True:
+            print("listen client start")
+            conn, addr = s.accept()
+            client.append(conn)
+            sub = threading.Thread(target=self.recive, args=(conn,))
+            sub.start()
+            client_thread.append(sub)
+            # index = len(client)
+            self.msg_all.appendPlainText("connect....."+str(addr[0])+" : "+str(addr[1]))
+            self.btn_conn.setText("Server stop | connection : "+str(len(client)))
+
+    def server_exit(self):
+        for client_c in self.client:
+            try:
+                client_c.shotdown()
+            finally:
+                print("close all connection")
+        for thread in self.client_thread:
+            try:
+                thread.stop()
+                thread.quit()
+                thread.join()
+            finally:
+                print("finish all process")
+        print("print end application")
+
+
 
 if __name__ == "__main__":
     import sys
