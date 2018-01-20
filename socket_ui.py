@@ -233,8 +233,9 @@ class Ui_MainWindow(object):
 
     def server_mode(self):
 
-        host = self.input_host.text() if self.input_host.text() else "127.0.0.1"
-        port = self.input_port.text() if self.input_port.text() else 7878
+        host = self.input_host.text() if self.input_host.text() else "127.0.0.1"; self.input_host.setText("127.0.0.1")
+
+        port = self.input_port.text() if self.input_port.text() else 7878; self.input_port.setText("7878")
         self.msg_all.appendPlainText("staring..... " + host + " : " + str(port))
         s = socket()  # save connection object
 
