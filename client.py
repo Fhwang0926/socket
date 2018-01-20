@@ -41,7 +41,7 @@ global data
 data = ""
 s = socket()
 host = "127.0.0.1"
-port = 4444
+port = 1234
 
 s.connect((host, port))
 print("ok ", host)
