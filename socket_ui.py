@@ -227,7 +227,7 @@ class Ui_MainWindow(object):
             for client_c in client:
                 who = client_c.getpeername()
                 who_details = str(who[0]) + ":" + str(who[1])
-                client_c.send((who_details + "`" + str(data)).encode("utf-8"))
+                client_c.send((who_details + "|" + str(data)).encode("utf-8"))
                 self.msg_all.appendPlainText(who_details + " <==== " + str(data))
             mode = 1
 

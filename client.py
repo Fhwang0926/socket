@@ -1,4 +1,4 @@
-import sys, threading
+import sys, threading, time, subprocess
 
 if sys.platform == "win32":
     from socket import *
@@ -8,18 +8,20 @@ else:
 
 def send():
     while 1:
+        time.sleep(1)
         data = input("msg > ")
         s.send(data.encode("utf-8"))
 
 def recive():
     while 1:
-        data_recive = s.recv(1024).decode("utf-8").split("`")
+        time.sleep(1)
+        data_recive = s.recv(1024).decode("utf-8").split("|")
         if (data_recive[0]):
-            if data_recive[0].split(":")[0] == get_ip():
+            if data_recive[0] == str(s.getsockname()[0])+":"+str(s.getsockname()[1]):
                 who = "me : "
             else:
                 who = data_recive[0]+" : "
-            print("\n"+str(who)+ data_recive[1])
+            print("\n"+str(who)+ str(data_recive[1]))
 
 def get_ip():
     s = socket()
@@ -41,11 +43,14 @@ global data
 data = ""
 s = socket()
 host = "127.0.0.1"
-port = 1234
-
-s.connect((host, port))
-print("ok ", host)
-
+port = 4444
+try:
+    s.connect((host, port))
+    print("ok ", host)
+    print(s.getpeername())
+except:
+    print("Please, chekck IP or Port")
+    sys.exit()
 t_send = threading.Thread(target=send)
 t_send.start()
 t_recive = threading.Thread(target=recive)
