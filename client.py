@@ -21,7 +21,7 @@ def recive():
                 who = "me : "
             else:
                 who = data_recive[0]+" : "
-            print("\n"+str(who)+ str(data_recive[1]))
+            print(str(who)+ str(data_recive[1]))
 
 def get_ip():
     s = socket()

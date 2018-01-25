@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_3">
     <item>
-     <widget class="QTabWidget" name="tabWidget">
+     <widget class="QTabWidget" name="tab_col">
       <property name="currentIndex">
        <number>0</number>
       </property>
@@ -154,102 +154,100 @@ p, li { white-space: pre-wrap; }
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_6">
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_4">
+         <layout class="QVBoxLayout" name="verticalLayout_5">
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_5">
-            <item>
-             <layout class="QFormLayout" name="formLayout_2">
-              <property name="horizontalSpacing">
-               <number>15</number>
-              </property>
-              <property name="verticalSpacing">
-               <number>20</number>
-              </property>
-              <item row="0" column="0">
-               <widget class="QLabel" name="l_client_host">
-                <property name="text">
-                 <string>Host</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLineEdit" name="input_client_host">
-                <property name="placeholderText">
-                 <string>ex) 8.8.8.8.8 Write IP or Domain</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="l_client_port">
-                <property name="text">
-                 <string>Port</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="input_client_port">
-                <property name="placeholderText">
-                 <string>ex) 7878 default 5555</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="l_client_state">
-                <property name="text">
-                 <string>Status</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QLabel" name="l_client_state_rs">
-                <property name="text">
-                 <string>Stop</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <widget class="QPushButton" name="btn_client_run">
+           <layout class="QFormLayout" name="formLayout_2">
+            <property name="horizontalSpacing">
+             <number>15</number>
+            </property>
+            <property name="verticalSpacing">
+             <number>20</number>
+            </property>
+            <item row="0" column="0">
+             <widget class="QLabel" name="l_client_host">
               <property name="text">
-               <string>Start Connection</string>
+               <string>Host</string>
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="QPlainTextEdit" name="msg_all_client">
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="input_client_host">
               <property name="placeholderText">
-               <string>Message All log here</string>
+               <string>ex) 8.8.8.8.8 Write IP or Domain</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="l_client_port">
+              <property name="text">
+               <string>Port</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="input_client_port">
+              <property name="placeholderText">
+               <string>ex) 7878 default 4444</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="l_client_state">
+              <property name="text">
+               <string>Status</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="l_client_state_rs">
+              <property name="text">
+               <string>Stop</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_client_run">
+            <property name="text">
+             <string>Start Connection</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTextEdit" name="msg_all_client">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="placeholderText">
+             <string>Message All log here</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <item>
+             <widget class="QLabel" name="l_client_msg">
+              <property name="text">
+               <string>Msg</string>
               </property>
              </widget>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_4">
-              <item>
-               <widget class="QLabel" name="l_client_msg">
-                <property name="text">
-                 <string>Msg</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="input_client_msg"/>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btn_client_send">
-                <property name="text">
-                 <string>Send</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
+             <widget class="QLineEdit" name="input_client_msg"/>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btn_client_send">
+              <property name="text">
+               <string>Send</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
          </layout>
         </item>
        </layout>
-       <zorder></zorder>
       </widget>
      </widget>
     </item>
@@ -261,7 +259,7 @@ p, li { white-space: pre-wrap; }
      <x>0</x>
      <y>0</y>
      <width>729</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

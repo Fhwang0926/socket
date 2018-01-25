@@ -16,6 +16,7 @@ class MyWindow(QMainWindow, form_class):
 
     def __init__(self):
         super().__init__()
+        # server
         self.setupUi(self)
         #여기서 ,ui 파일을 보고 직접 바인딩되는 이벤트 객체 핸들러를 지정해야된다
         #setupUi(self) 가 객체를 가지고 있어 미리 바인딩이 되지 않는다 ㅇㅋ?
@@ -23,23 +24,76 @@ class MyWindow(QMainWindow, form_class):
         self.btn_server_run.clicked.connect(self.run_server)
         self.btn_server_send.clicked.connect(self.notice_send)
         self.th_server = run_server_thread(parent=self)
-
+        self.th_client = run_client_thread(parent=self)
         # 각각 함수로 무엇을 할지를 정의한다
         # 시그널 사용자 정의 함수
         self.th_server.update_client_sig.connect(self.update_client_cnt)
         self.th_server.update_disclient_sig.connect(self.update_client_cnt)
-        self.th_server.msg_sig.connect(self.msg_all_update)
+        self.th_server.msg_sig.connect(self.msg_update_server)
         self.th_server.client_thread_sig.connect(self.client_thread)
         self.th_server.client_thread_exit_sig.connect(self.client_thread_exit)
 
-
-
-
         # 종료 시그널 발생시 실행되는 함수
         self.th_server.finished.connect(self.thread_finished)
+        self.th_client.finished.connect(self.thread_finished)
 
+        # client
+        self.btn_client_run.clicked.connect(self.run_client)
+        self.btn_client_send.clicked.connect(self.msg_send)
+        self.th_client.client_sig.connect(self.msg_update_client)
+        self.th_client.client_get_msg_sig.connect(self.msg_update_client)
+
+    # client side
+    def run_client(self):
+        if self.l_client_state_rs.text() == "Running":
+            self.input_client_host.setEnabled(True)
+            self.input_client_port.setEnabled(True)
+            self.l_client_state_rs.setText("Stopped")
+            self.btn_client_run.setText("Start")
+            self.th_client.run_bool = False
+            # self.clinet_thread_all()
+            # self.th_client.send_close_connection()
+            self.msg_all_client.append("Stop Server.....ok")
+
+        else:
+
+            self.host = self.input_client_host.text() if self.input_client_host.text() else self.host;
+            self.input_client_host.setText(self.host)
+            self.th_client.host = self.host
+            self.port = self.input_client_port.text() if self.input_client_port.text() else self.port;
+            self.input_client_port.setText(str(self.port))
+            self.th_client.port = int(self.port)
+            self.btn_client_run.setText("Stop")
+            self.input_client_host.setEnabled(False)
+            self.input_client_port.setEnabled(False)
+            self.l_client_state_rs.setText("Running")
+            self.msg_all_client.append("Running Client.....ok")
+            self.th_client.run_bool = True
+            self.th_client.start()
+
+
+    def msg_send(self):
+        if self.input_client_msg.text() == "":
+            QMessageBox.about(self, "Notice", "Please,input MSG")
+        elif len(self.thread) < 2:
+            QMessageBox.about(self, "Notice", "No, another client")
+        else:
+            who = str(self.th_client.client_s.getsockname()[0])+":"+str(self.th_client.client_s.getsockname()[1])
+            self.th_server.send_msg(self.input_client_msg.text(), who)
+
+    def client_get_msg(self, data):
+        data_recive = data.decode("utf-8").split("|")
+        if data_recive[0] == str(self.th_client.s.getsockname()[0]) + ":" + str(self.th_client.s.getsockname()[1]):
+            who = "me : "
+        else:
+            who = data_recive[0] + " : "
+        self.msg_update_client(str(who) + str(data_recive[1]))
+        print("\n" + str(who) + str(data_recive[1]))
+
+
+    # server side
     # thread all kill
-    def clinet_thread_all(self):
+    def clinet_thread_all_exit(self):
         for th in self.thread:
             try:
                 th.run_bool = False
@@ -48,9 +102,11 @@ class MyWindow(QMainWindow, form_class):
                 pass
         print("End all client thread")
 
-
-
-
+    # client thread kill using index
+    def client_thread_exit(self, i):
+        self.thread[i].run_bool = False
+        self.thread[i].terminate()
+        self.thread.pop(i)
     # @pyqtSlot()
     def run_server(self):
 
@@ -60,7 +116,7 @@ class MyWindow(QMainWindow, form_class):
             self.l_server_state_rs.setText("Stopped")
             self.btn_server_run.setText("Start")
             self.th_server.run_bool = False
-            self.clinet_thread_all()
+            self.clinet_thread_all_exit()
             self.th_server.send_close_connection()
         else:
             self.th_server.run_bool = True
@@ -90,8 +146,12 @@ class MyWindow(QMainWindow, form_class):
             QMessageBox.about(self, "Notice", "No Client connections or MSG\nPlease check client to to sending, or MSG")
     # log server binding thread finished
     def thread_finished(self):
-        self.msg_all_server.append("Stopped Server.......ok")
-        print("Client wait thread finished")
+        th_type = self.tab_col.tabText(self.tab_col.currentIndex())
+        if th_type == "Client":
+            self.msg_all_client.append("Stopped Client.......ok")
+        else:
+            self.msg_all_server.append("Stopped Server.......ok")
+        print("thread finished")
         print("Memorey free....ok")
     # update client cnt when client new connection
     def update_client_cnt(self, client_str, calc="+"):
@@ -102,21 +162,25 @@ class MyWindow(QMainWindow, form_class):
             except:
                 cnt = "Stop / client:1"
             self.btn_server_run.setText(cnt)
-            self.msg_all_server.append(client_str + ".....connected ")
+            self.msg_update_server(client_str + ".....connected ")
             print(client_str + ".....connected ")
         else:
             cnt = int(self.btn_server_run.text().split(":")[1])
             cnt = "Stop / client:" + str(cnt-1)
             self.btn_server_run.setText(cnt)
-            self.msg_all_server.append(client_str + ".....disconnected")
+            self.msg_update_server(client_str + ".....disconnected", 1)
             print(client_str + ".....disconnected")
     # msg add function
-    def msg_all_update(self, data):
+    def msg_update_server(self, data):
         self.msg_all_server.append(str(data))
+    def msg_update_client(self, data):
+        self.msg_all_client.append(str(data))
 
+    #run client thread catch msg from client
     def client_thread(self, con):
         # add thread object
         client_thread = run_client_bypass()
+        client_thread.msg_rebind_sig.connect(self.msg_update_server)
         self.thread.append(client_thread)
         # thread run bit set
         # self.thread[len(self.thread)-1].run_bool = True
@@ -126,10 +190,9 @@ class MyWindow(QMainWindow, form_class):
         # start recive thread
         self.thread[len(self.thread)-1].start()
 
-    def client_thread_exit(self, i):
-        self.thread[i].run_bool = False
-        self.thread[i].terminate()
-        self.thread.pop(i)
+    def client_exit(self):
+        self.th_client.run_bool = False
+
 
 
 
@@ -196,34 +259,71 @@ class run_server_thread(QThread):
         end_s = socket()
         end_s.connect((self.host, int(self.port)))
     # server Notice function
-    def send_msg(self, data="", who=""):
-        if (len(self.client) and data):
-            for i in range(0, len(self.client)):
+    def send_msg(self, data="", who="", connection = ""):
+        connection = connection if connection != "" else self.client
+        if (len(connection) and data):
+            for i in range(0, len(connection)):
                 who = ("Server notice : " if who == "" else who)
-                if self.client[i] != "":
+                if connection[i] != "":
                     try:
-                        self.client[i].send((who+"|"+str(data)).encode("utf-8"))
-                        self.msg_sig.emit(who+str(data) + " ==>  broadcast")
+                        connection[i].send((who+"|"+str(data)).encode("utf-8"))
                     except:
                         # close connection remove
-                        self.update_disclient_sig.emit(str(self.client[i].getpeername()[0])+":"+str(self.client[i].getpeername()[1]), "-")
+                        self.update_disclient_sig.emit(str(connection[i].getpeername()[0])+":"+str(connection[i].getpeername()[1]), "-")
                         self.client.pop(i)
                         self.client_thread_exit_sig.emit(i)
-
+            self.msg_sig.emit(who +"|"+ str(data) + " ==>  broadcast")
             return True
         else:
             return False
-    # client_msg bypass thread
 
-# class run_client_thread(QThread):
-#
-#     def __init__(self):
-#         pass
-#     def run(self):
-#         pass
+class run_client_thread(QThread):
+    exception_sig = pyqtSignal(str)
+    client_sig = pyqtSignal(str)
+    client_get_msg_sig = pyqtSignal(str)
+    client_exit_sig = pyqtSignal()
+    def __init__(self, parent=None):
 
+        super().__init__()
+        self.main = parent
+        self.run_bool = True
+        self.client_s = socket()
+        self.host = ""
+        self.port = 0
+
+    def run(self):
+        try:
+            self.client_s.connect((self.host, self.port))
+            print("ok ", self.host)
+            who = str(self.client_s.getsockname()[0]) + ":" + str(self.client_s.getsockname()[1])
+            self.client_sig.emit(who + "........connected")
+
+            while self.run_bool:
+                self.msleep(150)
+                print("wait msg")
+                data_recive = self.client_s.recv(1024).decode("utf-8").split("|")
+                if (data_recive[0]):
+                    is_me_chk = str(self.client_s.getsockname()[0]) + " : " + str(self.client_s.getsockname()[1])
+                    if data_recive[0].replace(" ","") == is_me_chk.replace(" ", ""):
+                        who = "me : "
+                    else:
+                        who = data_recive[0] + " : "
+                    data = str(who) + str(data_recive[1])
+                    self.client_get_msg_sig.emit(data)
+                    print(data)
+            if not self.run_bool:
+                self.client_s.close()
+                # self.client_exit_sig.emit()
+        except:
+            print("Please, chekck IP or Port")
+            self.exception_sig.emit("Please, chekck IP or Port")
+
+
+
+
+# client_msg bypass thread
 class run_client_bypass(QThread):
-
+    msg_rebind_sig = pyqtSignal(str)
     def __init__(self):
         super().__init__()
         self.run_bool_bypass = True
@@ -239,7 +339,7 @@ class run_client_bypass(QThread):
                 who = str(self.con.getpeername()[0])+":"+str(self.con.getpeername()[1])
                 print("rebinding : " + who+" ==> "+data)
                 server.send_msg(data, who)
-
+                self.msg_rebind_sig.emit("rebinding : " + who+" ==> "+data)
         print("end client bypass")
 
 if __name__ == "__main__":
