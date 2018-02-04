@@ -43,8 +43,8 @@ def send(data):
 mode = 1
 client = []#save connection object
 s = socket()
-host = gethostname()
-port = 7878
+host = "127.0.0.1"
+port = 4444
 
 s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 # create socket
