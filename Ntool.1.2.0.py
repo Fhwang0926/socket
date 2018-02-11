@@ -16,7 +16,6 @@ class MyWindow(QMainWindow, form_class):
 
     def __init__(self):
         super().__init__()
-
         self.setupUi(self)
         # make thread
         self.th_client = client_thread()
@@ -32,9 +31,10 @@ class MyWindow(QMainWindow, form_class):
         self.btn_client_run.clicked.connect(self.run_client_ex)
         self.btn_client_send.clicked.connect(self.common_input_send)
         self.input_client_msg.returnPressed.connect(self.common_input_send)
-        self.th_client.client_msg_update_sig.connect(self.update_msg)
+        self.th_client.client_msg_update_sig.connect(self.msg_all_client.append)
         self.th_client.msg_box_sig.connect(self.msg_box)
         self.th_client.client_con_cnt_sig.connect(self.client_con_cnt.setText)
+        self.th_client.client_exit_sig.connect(self.run_client_ex)
 
     def run_server_ex(self, ex_type):
         ex_type = True if not (ex_type) and self.l_server_state_rs.text() != "Running" else False
@@ -54,13 +54,17 @@ class MyWindow(QMainWindow, form_class):
             self.th_server.start()
             print("Running Server.....ok")
         else:
-            self.input_server_host.setEnabled(True)
-            self.input_server_port.setEnabled(True)
-            self.l_server_state_rs.setText("Stopped")
-            self.btn_server_run.setText("Start")
-            self.th_server.run_bool = False
-            self.th_server.run_bool = False
-            self.client_manager(0, "all")
+            if self.th_client.run_bool:
+                self.msg_box("Hey!!", "Please disconnection client first !!")
+            else:
+                self.input_server_host.setEnabled(True)
+                self.input_server_port.setEnabled(True)
+                self.l_server_state_rs.setText("Stopped")
+                self.btn_server_run.setText("Start")
+                self.th_server.run_bool = False
+                self.th_server.run_bool = False
+                self.client_manager(0, "all")
+
 
     def run_client_ex(self, ex_type):
         ex_type = True if not (ex_type) and self.l_client_state_rs.text() != "Running" else False
@@ -75,6 +79,7 @@ class MyWindow(QMainWindow, form_class):
             self.input_client_host.setEnabled(False)
             self.input_client_port.setEnabled(False)
             self.l_client_state_rs.setText("Running")
+            self.th_client.con = socket()
             self.th_client.run_bool = True
             self.th_client.start()
         else:
@@ -82,26 +87,28 @@ class MyWindow(QMainWindow, form_class):
             self.input_client_port.setEnabled(True)
             self.l_client_state_rs.setText("Stopped")
             self.btn_client_run.setText("Start")
-            self.th_client.run_bool = False
-            self.th_client.con.close()
-            self.th_client.con = socket()
+
+            self.client_con_cnt.setText("0")
+            self.msg_all_client.append("exit connection")
+            if self.th_client.run_bool:
+                self.th_client.run_bool = False
+                self.th_client.con.send("FLAG|exit".encode("UTF-8"))
+            self.con = socket()
 
     def common_input_send(self):
-        print(self.tab_col.currentIndex())
         if self.tab_col.currentIndex() == 0:
             data = self.input_server_msg.text()
             if data != "" :
-                if self.th_server.run_bool: #서버가 동작중인가 확인
+                if self.th_server.run_bool and len(self.client_c) > 0: #서버가 동작중인가 확인
                     data = "Notice | "+data # 공지 누가 전송하는지를 저장
                     self.send_msg_all(data) #공지
                     self.input_server_msg.setText("") # 메세지 보내고 초기화
                 else:
-                    self.msg_box("Notice", "No, server run") #서버가 일하지 않을 때
+                    self.msg_box("Notice", "No, server run or client is Zero") #서버가 일하지 않을 때
             else:
                 self.msg_box() # 공백일때
-            #server
+            self.input_server_msg.setFocus()
         else:
-            # client
             data = self.input_client_msg.text()
             if data != "":
                 if self.th_client.run_bool:
@@ -116,14 +123,16 @@ class MyWindow(QMainWindow, form_class):
                     self.msg_box("Notice", "No, Other connection")
             else:
                 self.msg_box()
+            self.input_client_msg.setFocus()
 
     # send msg all
     def send_msg_all(self, data = ""):
         if data == "":
             self.msg_box()
             return False
-        # self.update_msg(data)
         if self.th_server.run_bool:
+            if not ("FLAG" in data):
+                self.msg_all_server.append(data)
             for client in self.client_c:
                 try:
                     self.client_c[client]['thread'].con.send(data.encode('utf-8'))
@@ -131,12 +140,13 @@ class MyWindow(QMainWindow, form_class):
                     print(e)
                     self.client_manager(0, self.client_c)
         elif self.th_client.run_bool:
+            try:
                 self.input_client_msg.setText("")
-                print(data)
                 self.th_client.con.send(data.encode("utf-8"))
+            except Exception as e:
+                self.msg_all_client.append(str(e))
+                print(e)
 
-
-    # client add/ del func
     def client_manager(self, type = 1, connection = ""):
         if type:#add connection
             who  = connection.getpeername()[0]+":"+str(connection.getpeername()[1])
@@ -149,46 +159,46 @@ class MyWindow(QMainWindow, form_class):
             self.client_c[who]['thread'].msg_rebind_sig.connect(self.send_msg_all)
             self.client_c[who]['thread'].client_exit_sig.connect(self.list_update)
             self.client_c[who]['thread'].start()
-
+            flag = "FLAG|refresh|"+str(len(self.client_c))
+            self.send_msg_all(flag)
         else:#del connection
+            flag = "FLAG|exit"
             if str(connection) == "all":
-                self.th_server.s.close()
                 if len(self.client_c) > 0:
-                    try:
-                        for client in self.client_c:
-                            self.client_c[client]['thread'].con.close()
-                    except Exception as e:
-                        print(str(e))
-                    finally:
-                        self.list_clients.clear()
+                    for client in self.client_c:
+                        try:
+                            self.msg_all_server.append("disconnection | "+str(client))
+                            self.client_c[client]['thread'].run_bool = False
+                            self.client_c[client]['thread'].con.send(flag.encode("UTF-8"))
+                        except Exception as e:
+                            print(str(e))
+                    self.client_c = []
+                    self.list_clients.clear()
+                self.th_server.s.close()
             else:
                 who = connection
                 self.list_update(0, who) # 리스트 제거 및 연경 종료 표시
                 try:
-                    self.client_c[who]['thread'].con.close()
+                    self.client_c[who]['thread'].con.send(flag)
                 finally:
                     if self.th_server.run_bool:
                         self.client_c.pop(who)
                         print("remove disconnection client")
-        con_cnt_str = "FLAG|" + str(len(self.client_c))
-        self.send_msg_all(con_cnt_str)
+        print(flag)
 
     # common msg func
     def msg_box(self, title = "Notice", msg = "No, blank!!!", kill_type = ""):
+        if "Error" in msg:
+            limit = msg.rindex("]")+1
+            title = msg[:limit]
+            msg = msg[limit+1:]
         QMessageBox.about(self, title, msg)
         print("msg box | "+title+":"+msg)
-        # if kill_type == "client":
-        #     self.run_client_ex(0)
         if kill_type == "server":
             self.run_server_ex(0)
         if kill_type == "client":
             self.run_client_ex(0)
 
-    def update_msg(self, data):
-        if self.th_server.run_bool:
-            self.msg_all_server.append(data)
-        if self.th_client.run_bool:
-            self.msg_all_client.append(data)
     def list_update(self, type=1, who = ""):
         if who != "":
             if type:
@@ -201,8 +211,8 @@ class MyWindow(QMainWindow, form_class):
                     self.list_clients.clear()
                     for who in self.client_c:
                         self.list_clients.addItem(who)
+            self.send_msg_all("FLAG|refresh|"+str(len(self.client_c)))
         else:
-            print("check intput")
             self.msg_box()
 
 class server_thread(QThread):
@@ -219,8 +229,6 @@ class server_thread(QThread):
 
     # server thread main
     def run(self):
-        # var set socket type
-
         # create socket
         self.s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         #bscoket bind from port
@@ -228,10 +236,8 @@ class server_thread(QThread):
         # can client connection 5 client
         self.s.listen(5)
 
-        # check thread execute from self.run_bool
         try:
             while self.run_bool:
-                print("client wait start")
                 self.msleep(100)
                 conn, addr = self.s.accept()
                 if conn:
@@ -239,8 +245,7 @@ class server_thread(QThread):
                         conn.close()
                         break
                     else:
-                        self.client_connection_sig.emit(1, conn)# 클라이언트 추가 접속 시그널
-            # self.clinet_all_disconnection_sig
+                        self.client_connection_sig.emit(1, conn)
             self.s.close()
         except Exception as e:
             print("th_server_error | "+str(e))
@@ -263,18 +268,23 @@ class by_pass_msg_thread(QThread):
             while self.run_bool:
                 self.msleep(150)
                 data = self.con.recv(1024).decode("utf-8")
-                if data:
+                if data.split("|")[0] == "FLAG":
+                    print(data)
+                    self.run_bool = False
+                    break
+                elif data[0]:
                     self.msg_rebind_sig.emit(data)
-                    print("rebinding : " + who + " ==> " + data)
         except Exception as e:
             print("th_bypass_error | "+str(e))
-            self.client_exit_sig.emit(0, who)
+        self.client_exit_sig.emit(0, who)
+        self.con.close()
         print("bypass thread finished")
 
 class client_thread(QThread):
     client_msg_update_sig = pyqtSignal(str)
     msg_box_sig = pyqtSignal(str, str, str)
     client_con_cnt_sig = pyqtSignal(str)
+    client_exit_sig = pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__()
@@ -286,31 +296,30 @@ class client_thread(QThread):
         self.me = ""
 
     def run(self):
-
         try:
-            try:
-                self.con.connect((self.host, int(self.port)))
-            except:
-                self.msg_box_sig.emit("Notice", "incorrectly host or port", "client")
-            me = str(self.con.getsockname()[0]) + ":" + str(self.con.getsockname()[1])
-            print("ok | running client")
-            while self.run_bool:
-                self.msleep(100)
-                data_recive = self.con.recv(1024).decode("utf-8").split("|")
+            self.con.connect((self.host, int(self.port))) #connect socket
+            me = str(self.con.getsockname()[0]) + ":" + str(self.con.getsockname()[1]) #get who once
+            while self.run_bool: # client run code
+                self.msleep(100) #wait 0.1 sec execute thread
+                data_recive = self.con.recv(1024).decode("utf-8").split("|") # client recived  data
                 if (data_recive[0] != ""):
-                    if data_recive[0] == "FLAG":
-                        print("connections : "+str(data_recive[1]))
-                        self.client_con_cnt_sig.emit(data_recive[1])
-                        continue
+                    if data_recive[0] == "FLAG": # communication code with server
+                        if data_recive[1] == "exit": #exit code
+                            break
+                        elif data_recive[1] == "refresh": # connection refresh code
+                            self.client_con_cnt_sig.emit(data_recive[2]) #update connection info
+                        continue # keep going loop
                     elif data_recive[0] == me:
-                        rs = "me : "+data_recive[1]
+                        rs = "me : "+data_recive[1] # send me
                     else:
-                        rs = data_recive[0]+"|"+data_recive[1]
-                    print(rs)
-                    self.client_msg_update_sig.emit(rs)
+                        rs = data_recive[0]+"|"+data_recive[1] # send pthers
+                    self.client_msg_update_sig.emit(rs)  #client update signal send main process
         except Exception as e:
-            print("th_client_error | " + str(e))
-        print("client thread finished")
+            self.msg_box_sig.emit("Notice", str(e), "") #notice alert error msg
+
+        if self.run_bool:
+            self.client_exit_sig.emit(0)
+            self.run_bool = False
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
