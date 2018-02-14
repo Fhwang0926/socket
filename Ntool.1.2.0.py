@@ -87,7 +87,6 @@ class MyWindow(QMainWindow, form_class):
             self.input_client_port.setEnabled(True)
             self.l_client_state_rs.setText("Stopped")
             self.btn_client_run.setText("Start")
-
             self.client_con_cnt.setText("0")
             self.msg_all_client.append("exit connection")
             if self.th_client.run_bool:
@@ -235,7 +234,6 @@ class server_thread(QThread):
         self.s.bind((self.host, self.port))
         # can client connection 5 client
         self.s.listen(5)
-
         try:
             while self.run_bool:
                 self.msleep(100)
