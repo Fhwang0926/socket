@@ -1,76 +1,66 @@
-import threading
 from socket import *
+from PyQt5.QtCore import *
 
+class server_thread(QThread):
+    client_connection_sig = pyqtSignal(int, socket)
+    client_all_disconnection_sig = pyqtSignal(int, str)
 
-global mode
-global s
-global host
-global port
-global client
-global client_thread
-global data
+    def __init__(self, parent=None):
+        super().__init__()
+        self.main = parent
+        self.run_bool = False
+        self.host = ""
+        self.port = 0
+        self.s = socket()
 
+    # server thread main
+    def run(self):
+        # create socket
+        self.s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        #bscoket bind from port
+        self.s.bind((self.host, self.port))
+        # can client connection 5 client
+        self.s.listen(5)
+        try:
+            while self.run_bool:
+                self.msleep(100)
+                conn, addr = self.s.accept()
+                if conn:
+                    if not self.run_bool:
+                        conn.close()
+                        break
+                    else:
+                        self.client_connection_sig.emit(1, conn)
+            self.s.close()
+        except Exception as e:
+            print("th_server_error | "+str(e))
+        print("server thread finished")
 
-#msg data binding
-def recive(conn):
+class by_pass_msg_thread(QThread):
+    msg_rebind_sig = pyqtSignal(str)
+    client_exit_sig = pyqtSignal(int, str)
 
-    while True:
-        data = conn.recv(1024).decode("utf-8")
-        if (data):
-            send(data)
+    def __init__(self):
+        super().__init__()
+        self.run_bool = False
+        self.con = socket()
+        self.index = 0
 
-def notice_server():
-    while 1:
-        if mode:
-            notice = input("Notice : ")
-            if (notice):
-                for client_c in client:
-
-                    client_c.send(("server : " +str(port)+ "`" + str(notice)).encode("utf-8"))
-                print("send notice")
-
-#msg sending
-def send(data):
-        if (data):
-            for client_c in client:
-                who = client_c.getpeername()
-                who_details = str(who[0])+":"+str(who[1])
-                client_c.send((who_details+"`"+str(data)).encode("utf-8"))
-            print("\n"+who_details+" ==>  broadcast")
-            mode = 1
-
-
-mode = 1
-client = []#save connection object
-s = socket()
-host = "127.0.0.1"
-port = 4444
-
-s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-# create socket
-s.bind((host, port))
-# can client connection 5 client
-s.listen(5)
-
-print("server start demon")
-
-threading.Thread(target=notice_server).start()
-# index = 0
-while True:
-
-    conn, addr = s.accept()
-    client.append(conn)
-
-    threading.Thread(target=recive, args=(conn,)).start()
-    # index = len(client)
-
-    print("ok ", str(addr[0])+":"+str(addr[1]))
-    print("total connection : "+str(len(client)))
-
-
-#t_listen.start()
-
-
-
-
-
+    def run(self):
+        print("pybass thread start")
+        who = str(self.con.getpeername()[0]) + ":" + str(self.con.getpeername()[1])
+        try:
+            while self.run_bool:
+                self.msleep(150)
+                data = self.con.recv(1024).decode("utf-8")
+                if data.split("|")[0] == "FLAG":
+                    print(data)
+                    self.run_bool = False
+                    break
+                elif data[0]:
+                    self.msg_rebind_sig.emit(data)
+        except Exception as e:
+            print("th_bypass_error | "+str(e))
+        self.client_exit_sig.emit(0, who)
+        self.con.close()
+        print("bypass thread finished")
