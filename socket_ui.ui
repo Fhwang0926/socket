@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>847</width>
+    <width>891</width>
     <height>854</height>
    </rect>
   </property>
@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tab_col">
       <property name="currentIndex">
-       <number>2</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="Server">
        <attribute name="title">
@@ -290,7 +290,7 @@ p, li { white-space: pre-wrap; }
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_14">
               <item>
-               <widget class="QLabel" name="label_12">
+               <widget class="QLabel" name="l_addr">
                 <property name="minimumSize">
                  <size>
                   <width>0</width>
@@ -308,7 +308,7 @@ p, li { white-space: pre-wrap; }
               <item>
                <widget class="QLineEdit" name="input_url">
                 <property name="placeholderText">
-                 <string>#write URL Address or Domain</string>
+                 <string>#Write URL or Domain</string>
                 </property>
                </widget>
               </item>
@@ -321,9 +321,9 @@ p, li { white-space: pre-wrap; }
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_4">
               <item>
-               <widget class="QLabel" name="label_13">
+               <widget class="QLabel" name="l_row">
                 <property name="text">
-                 <string>Row</string>
+                 <string>HTTP/1.1 Request Row Data</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -336,9 +336,9 @@ p, li { white-space: pre-wrap; }
               <item>
                <layout class="QHBoxLayout" name="horizontalLayout_9">
                 <item>
-                 <widget class="QCheckBox" name="checkBox_3">
+                 <widget class="QCheckBox" name="http_chkb_save_result">
                   <property name="text">
-                   <string>Header</string>
+                   <string>Result Save File</string>
                   </property>
                   <property name="checked">
                    <bool>true</bool>
@@ -346,23 +346,29 @@ p, li { white-space: pre-wrap; }
                  </widget>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_2">
+                 <widget class="QCheckBox" name="http_chkb_result_headers">
                   <property name="text">
-                   <string>Content</string>
+                   <string>Result Headers</string>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="checkBox_4">
+                 <widget class="QCheckBox" name="http_chkb_result_body">
                   <property name="text">
-                   <string>Session</string>
+                   <string>Result Body</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="checkBox">
+                 <widget class="QCheckBox" name="http_chkb_cookie">
                   <property name="text">
                    <string>Cookie</string>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
@@ -376,24 +382,7 @@ p, li { white-space: pre-wrap; }
                </widget>
               </item>
               <item>
-               <widget class="QLabel" name="label_11">
-                <property name="text">
-                 <string>Session</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="lineEdit">
-                <property name="text">
-                 <string>Session Info Here</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_10">
+               <widget class="QLabel" name="l_cookie">
                 <property name="text">
                  <string>Cookie</string>
                 </property>
@@ -403,7 +392,13 @@ p, li { white-space: pre-wrap; }
                </widget>
               </item>
               <item>
-               <widget class="QTableWidget" name="tableWidget_2">
+               <widget class="QTableWidget" name="http_cookies">
+                <property name="sortingEnabled">
+                 <bool>true</bool>
+                </property>
+                <property name="rowCount">
+                 <number>1</number>
+                </property>
                 <attribute name="horizontalHeaderCascadingSectionResizes">
                  <bool>false</bool>
                 </attribute>
@@ -447,9 +442,9 @@ p, li { white-space: pre-wrap; }
                </widget>
               </item>
               <item>
-               <widget class="QLabel" name="label_9">
+               <widget class="QLabel" name="l_packet_result">
                 <property name="text">
-                 <string>Packet Result</string>
+                 <string>Result Address Log List</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -457,20 +452,16 @@ p, li { white-space: pre-wrap; }
                </widget>
               </item>
               <item>
-               <widget class="QPlainTextEdit" name="plainTextEdit">
-                <property name="plainText">
-                 <string>Header and Content Write Here</string>
-                </property>
-               </widget>
+               <widget class="QListWidget" name="http_log_list"/>
               </item>
              </layout>
             </item>
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_10">
               <item>
-               <widget class="QLabel" name="label_8">
+               <widget class="QLabel" name="l_log">
                 <property name="text">
-                 <string>Log list</string>
+                 <string>Result Packet Data</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -478,12 +469,11 @@ p, li { white-space: pre-wrap; }
                </widget>
               </item>
               <item>
-               <widget class="QListWidget" name="listWidget">
-                <item>
-                 <property name="text">
-                  <string>log write here and can reload to click here</string>
-                 </property>
-                </item>
+               <widget class="QPlainTextEdit" name="http_res">
+                <property name="plainText">
+                 <string>Result Data
+You choice All or one</string>
+                </property>
                </widget>
               </item>
              </layout>
@@ -681,7 +671,10 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item>
-           <widget class="QProgressBar" name="progressBar">
+           <widget class="QProgressBar" name="arp_progressbar">
+            <property name="maximum">
+             <number>300</number>
+            </property>
             <property name="value">
              <number>0</number>
             </property>
@@ -792,7 +785,7 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>847</width>
+     <width>891</width>
      <height>26</height>
     </rect>
    </property>

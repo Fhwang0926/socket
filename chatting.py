@@ -1,6 +1,4 @@
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5 import uic
 from socket import *
 import sys
 
@@ -200,8 +198,8 @@ from subprocess import PIPE, Popen
 def cmdline(command):
     return os.popen(args=command, stdout=PIPE, shell=False).readlines()[2]
 
-print cmdline("cat /etc/services")
-print cmdline('ls')
-print cmdline('rpm -qa | grep "php"')
-print cmdline('nslookup google.com')
+print(cmdline("cat /etc/services"))
+print(cmdline('ls'))
+print(cmdline('rpm -qa | grep "php"'))
+print(cmdline('nslookup google.com'))
 import ipaddress

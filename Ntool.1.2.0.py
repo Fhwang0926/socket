@@ -2,11 +2,17 @@
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from socket import *
-from netaddr import IPAddress
-import sys, os, wmi, ipaddress
+import sys, os, wmi, arp, requests, json, ssl
+
+from libfuturize.fixer_util import future_import
+
 import server as s
 import client as c
-import requests, ssl
+import concurrent.futures
+
+
+from urllib.parse import urlparse
+import http.client as http_
 form_class = uic.loadUiType("socket_ui.ui")[0]
 
 class MyWindow(QMainWindow, form_class):
@@ -23,6 +29,7 @@ class MyWindow(QMainWindow, form_class):
 
         self.th_client = c.client_thread()
         self.th_server = s.server_thread()
+        self.th_arp_ping = arp.ping()
         ################################################## server_side
         self.btn_server_run.clicked.connect(self.run_server_ex)
         self.btn_server_send.clicked.connect(self.common_input_send)
@@ -42,17 +49,16 @@ class MyWindow(QMainWindow, form_class):
         ################################################## http side
         self.input_url.returnPressed.connect(self.http_send)
         self.send_btn.clicked.connect(self.http_send)
-        self.input_url.setText("google.com")
-        self.http_req.setPlainText(
-            str(self.send_type.currentText())
-            + " / " + str(self.http_type.currentText()) + "\r\nhost: " + str(self.input_url.text()) + "\r\n\r\n"
-        )
-        self.send_type.currentIndexChanged.connect(self.http_req_update)
-        self.http_type.currentIndexChanged.connect(self.http_req_update)
+        self.input_url.setText("www.f1security.co.kr")
+        self.http_req.setPlainText("GET / HTTP/1.1\r\nhost: " + str(self.input_url.text()) + "\r\n\r\n")
         self.input_url.textChanged.connect(self.http_req_update)
-        self.chk_http2_btn.clicked.connect(self.http2_chk)
+        # self.chk_http2_btn.clicked.connect(self.http2_chk)
         ################################################## arp side
-        self.scan_btn.clicked.connect(self.test)
+        self.scan_btn.clicked.connect(self.run_arp)
+        self.th_arp_ping.arp_find_sig.connect(self.arp_update)
+        self.th_arp_ping.arp_ex_sig.connect(self.arp_ex)
+
+
 
     def run_server_ex(self, ex_type):
         ex_type = True if not (ex_type) and self.l_server_state_rs.text() != "Running" else False
@@ -82,7 +88,6 @@ class MyWindow(QMainWindow, form_class):
                 self.th_server.run_bool = False
                 self.th_server.run_bool = False
                 self.client_manager(0, "all")
-
     def run_client_ex(self, ex_type):
         ex_type = True if not (ex_type) and self.l_client_state_rs.text() != "Running" else False
         if ex_type:
@@ -110,7 +115,6 @@ class MyWindow(QMainWindow, form_class):
                 self.th_client.run_bool = False
                 self.th_client.con.send("FLAG|exit".encode("UTF-8"))
             self.con = socket()
-
     def common_input_send(self):
         if self.tab_col.currentIndex() == 0:
             data = self.input_server_msg.text()
@@ -140,7 +144,6 @@ class MyWindow(QMainWindow, form_class):
             else:
                 self.msg_box()
             self.input_client_msg.setFocus()
-
     # send msg all
     def send_msg_all(self, data=""):
         if data == "":
@@ -162,7 +165,6 @@ class MyWindow(QMainWindow, form_class):
             except Exception as e:
                 self.msg_all_client.append(str(e))
                 print(e)
-
     def client_manager(self, type=1, connection=""):
         if type:  # add connection
             who = connection.getpeername()[0] + ":" + str(connection.getpeername()[1])
@@ -201,20 +203,22 @@ class MyWindow(QMainWindow, form_class):
                         self.client_c.pop(who)
                         print("remove disconnection client")
         print(flag)
-
     # common msg func
     def msg_box(self, title="Notice", msg="No, blank!!!", kill_type=""):
-        if "Error" in msg:
-            limit = msg.rindex("]") + 1
-            title = msg[:limit]
-            msg = msg[limit + 1:]
-        QMessageBox.about(self, title, msg)
-        print("msg box | " + title + ":" + msg)
-        if kill_type == "server":
-            self.run_server_ex(0)
-        if kill_type == "client":
-            self.run_client_ex(0)
+        try:
+            if "Error" in msg:
+                limit = msg.rindex("]") + 1
+                title = msg[:limit]
+                msg = msg[limit + 1:]
 
+            QMessageBox.about(self, title, msg)
+            print("msg box | " + title + ":" + msg)
+            if kill_type == "server":
+                self.run_server_ex(0)
+            if kill_type == "client":
+                self.run_client_ex(0)
+        except:
+            QMessageBox.about(self, title, "Insert Data Cause Broken Working\nPlease Check Insert Data")
     def list_update(self, type=1, who=""):
         if who != "":
             if type:
@@ -230,8 +234,181 @@ class MyWindow(QMainWindow, form_class):
             self.send_msg_all("FLAG|refresh|" + str(len(self.client_c)))
         else:
             self.msg_box()
-
     #http side
+    def http_req_update(self):
+        # url = self.make_full_url(self.input_url.text())
+        # self.input_url.seText(url)
+        url = self.input_url.text()
+        if url:
+            url_split = url.split("://")
+            url_split_more = url_split[len(url_split)-1].split("/")
+            if len(url_split_more) < 2:
+                path = "/"
+                host = url_split_more[0]
+            else:
+                path = "".join(url_split_more).replace(url_split_more[0], "/")
+                host = url_split_more[0]
+
+            http_req_row = "GET "+path+" HTTP/1.1\r\nhost: " + host + "\r\n\r\n"
+            self.http_req.setPlainText(http_req_row)
+
+    def chk_http_type(self, url):
+        try:
+            http_url = "http://"+self.make_full_url(url)
+            try:
+                conn = http_.HTTPConnection(http_url)
+                conn.request("HEAD", http_url.path)
+                if conn.getresponse():
+                    return http_url
+                else:
+                    return "https://"+http_url.split("://")[1]
+            except:
+                return "https://" + http_url.split("://")[1]
+        except:
+            return url
+
+    def make_full_url(self, input_):
+        if input_:
+            if "://" in input_:
+                if not("www." in input_):
+                    url = "www." + input_.split("://")[1]
+                else:
+                    url = input_.split("://")[1]
+            else:
+                if not("www." in input_):
+                    url = "www."+input_
+        else:
+            url = "www.example.com"
+
+        return url
+
+
+    def http_send(self):
+        self.http_res.setPlainText("")
+        if self.input_url.text():
+            try:
+                update_url = self.chk_http_type(self.input_url.text())
+                rs_get = requests.get(url=update_url)
+
+                cnt = 0
+                self.http_cookies.clearContents()
+                self.http_cookies.setRowCount(1)
+                for cookie in rs_get.cookies:
+                    if self.http_chkb_cookie.isChecked():
+                        self.http_cookies.setRowCount(cnt + 1)
+                        self.http_cookies.setItem(cnt, 0, QTableWidgetItem(cookie.name))
+                        self.http_cookies.setItem(cnt, 1, QTableWidgetItem(cookie.value))
+                        print(cnt, cookie.name, cookie.value)
+                        cnt += 1
+                rs = json.dumps(dict(rs_get.headers), indent=1)
+
+                print_result = ""
+                if self.http_chkb_result_headers.isChecked():
+                    print_result += str(rs)
+                if self.http_chkb_result_body.isChecked():
+                    print_result += "\n\n"
+                    print_result += str(rs_get.content.decode())
+                self.http_res.setPlainText(print_result)
+                if self.http_chkb_save_result.isChecked():
+                    f = open(self.input_url.text(), "a")
+                    f.write(rs)
+                    f.write(rs_get.text)
+                    f.close()
+
+                print("[+]HTTP OK")
+                self.http_log_list.addItem("\t".join([str(rs_get.status_code), update_url]))
+            except Exception as e:
+                print(e)
+                self.msg_box(msg=str(e))
+
+        else:
+            self.msg_box()
+
+    #arp side
+    def arp_ex(self, rs):
+        if rs:
+            self.s_ip_1.setEnabled(True)
+            self.s_ip_2.setEnabled(True)
+            self.s_ip_3.setEnabled(True)
+            self.s_ip_4.setEnabled(True)
+            self.s_ip_4.setEnabled(True)
+            self.e_ip_1.setEnabled(True)
+            self.e_ip_2.setEnabled(True)
+            self.e_ip_3.setEnabled(True)
+            self.e_ip_4.setEnabled(True)
+            self.scan_btn.setEnabled(True)
+            self.th_arp_ping.read_list()
+        else:
+            self.s_ip_1.setEnabled(False)
+            self.s_ip_2.setEnabled(False)
+            self.s_ip_3.setEnabled(False)
+            self.s_ip_4.setEnabled(False)
+            self.e_ip_1.setEnabled(False)
+            self.e_ip_2.setEnabled(False)
+            self.e_ip_3.setEnabled(False)
+            self.e_ip_4.setEnabled(False)
+            self.scan_btn.setEnabled(False)
+            self.arp_progressbar.setValue(0)
+
+
+    def run_arp(self):
+        gateway = ""
+        cmd_rs = str(os.popen("ipconfig", "r", -1).read())
+
+
+        for nic in wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1):
+            if nic.DHCPServer in cmd_rs:
+                ip = nic.IPAddress[0]
+                gateway = nic.DHCPServer
+
+        ip_s = ip.split(".")
+        sub_s = gateway.split(".")
+        #https://phaethon.github.io/scapy/api/usage.html
+        if ip_s[0] == sub_s[0] and ip_s[1] == sub_s[1] and ip_s[2] == sub_s[2]:
+
+            self.s_ip_1.setText(ip_s[0])
+            self.s_ip_2.setText(ip_s[1])
+            self.s_ip_3.setText(ip_s[2])
+            self.s_ip_4.setText("0")
+
+            self.e_ip_1.setText(ip_s[0])
+            self.e_ip_2.setText(ip_s[1])
+            self.e_ip_3.setText(ip_s[2])
+            self.e_ip_4.setText("255")
+
+
+            ip_ = str(ip_s[0]) + "." + str(ip_s[1]) + "." + str(ip_s[2]) + "."
+
+
+            try:
+                import queue
+                ip_q = queue.Queue()
+
+                for last_ip in range(0, 100):
+                    ip = ip_+str(last_ip)
+                    ip_q.put(ip)
+                    tmp = arp.arp_pro(1)
+                    tmp.set_ip(ip)
+                    tmp.start()
+                    tmp.wait()
+                # arp_pro = arp.arp_thread_pool(256, ip_q)
+                # arp_pro.run()
+
+                print("chk queue content")
+
+            except Exception as e:
+                print(e)
+            else:
+                print("end")
+
+    def arp_update(self, value):
+        self.arp_progressbar.setValue(self.arp_progressbar.value() + 1)
+
+
+    def arp_update_list(self, data_dic):
+        print(data_dic)
+
+    #beta area
     def http2_chk(self):
         rs = ""
         self.http_res.setPlainText("")
@@ -261,91 +438,6 @@ class MyWindow(QMainWindow, form_class):
         else:
             rs+= '[-]'+domain+' HTTPS Not Support\n'
         self.http_res.setPlainText(rs)
-
-    def http_req_update(self):
-        self.http_req.setPlainText(
-            str(self.send_type.currentText())
-            + " / "+str(self.http_type.currentText())+"\r\nhost: " + str(self.input_url.text()) + "\r\n\r\n"
-        )
-
-    def http_send(self):
-        try:
-            # url = self.input_url.text()
-            url = self.input_url.text()
-
-            ctx = ssl.create_default_context()
-            sock = ctx.wrap_socket(
-                create_connection((url, 443)),
-                server_hostname=url
-            )
-
-            if str(self.send_type.currentText()) == "GET":
-                sock.sendall(bytes(self.http_req.toPlainText().encode()))
-            else:
-                sock.sendall(bytes(self.http_req.toPlainText().encode()))
-            self.http_res.setPlainText(self.recvall(sock))
-        except Exception as e:
-            print(e)
-
-    def recvall(self, sock):
-        BUFF_SIZE = 4096  # 4 KiB
-        data = b''
-        while True:
-            part = sock.recv(BUFF_SIZE)
-            data += part
-            if len(part) < BUFF_SIZE:
-                # either 0 or end of data
-                break
-        return data.decode()
-
-    #arp side
-
-
-    def test(self):
-        gateway = None
-        subnet = None
-        cmd_rs = str(os.popen("ipconfig", "r", -1).read())
-
-
-        for nic in wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1):
-            if nic.DHCPServer in cmd_rs:
-                ip = nic.IPAddress[0]
-                gateway = nic.DHCPServer
-
-
-        ip_s = ip.split(".")
-        sub_s = gateway.split(".")
-
-        if ip_s[0] == sub_s[0] and ip_s[1] == sub_s[1] and ip_s[2] == sub_s[2]:
-
-            self.s_ip_1.setText(ip_s[0])
-
-            self.s_ip_2.setText(ip_s[1])
-
-            self.s_ip_3.setText(ip_s[2])
-            self.s_ip_4.setText("0")
-
-            self.e_ip_1.setText(ip_s[0])
-            self.e_ip_2.setText(ip_s[1])
-            self.e_ip_3.setText(ip_s[2])
-            self.e_ip_4.setText("255")
-
-            self.s_ip_1.setEnabled(False)
-            self.s_ip_2.setEnabled(False)
-            self.s_ip_3.setEnabled(False)
-            self.s_ip_4.setEnabled(False)
-            self.e_ip_1.setEnabled(False)
-            self.e_ip_2.setEnabled(False)
-            self.e_ip_3.setEnabled(False)
-            self.e_ip_4.setEnabled(False)
-
-            ip_ = str(ip_s[0]) + "." + str(ip_s[1]) + "." + str(ip_s[2]) + "."
-
-            for last_ip in range(0, 255):
-                ip = ip_+str(last_ip)
-                print(ip)
-
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
