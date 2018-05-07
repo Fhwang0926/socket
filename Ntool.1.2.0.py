@@ -4,8 +4,6 @@ from PyQt5 import uic
 from socket import *
 import sys, os, wmi, arp, requests, json, ssl
 
-from libfuturize.fixer_util import future_import
-
 import server as s
 import client as c
 import concurrent.futures
@@ -352,54 +350,42 @@ class MyWindow(QMainWindow, form_class):
 
 
     def run_arp(self):
-        gateway = ""
-        cmd_rs = str(os.popen("ipconfig", "r", -1).read())
+        ip_s = gethostbyname(gethostname()).split(".")
 
 
-        for nic in wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1):
-            if nic.DHCPServer in cmd_rs:
-                ip = nic.IPAddress[0]
-                gateway = nic.DHCPServer
+        self.s_ip_1.setText(ip_s[0])
+        self.s_ip_2.setText(ip_s[1])
+        self.s_ip_3.setText(ip_s[2])
+        self.s_ip_4.setText("0")
 
-        ip_s = ip.split(".")
-        sub_s = gateway.split(".")
-        #https://phaethon.github.io/scapy/api/usage.html
-        if ip_s[0] == sub_s[0] and ip_s[1] == sub_s[1] and ip_s[2] == sub_s[2]:
-
-            self.s_ip_1.setText(ip_s[0])
-            self.s_ip_2.setText(ip_s[1])
-            self.s_ip_3.setText(ip_s[2])
-            self.s_ip_4.setText("0")
-
-            self.e_ip_1.setText(ip_s[0])
-            self.e_ip_2.setText(ip_s[1])
-            self.e_ip_3.setText(ip_s[2])
-            self.e_ip_4.setText("255")
+        self.e_ip_1.setText(ip_s[0])
+        self.e_ip_2.setText(ip_s[1])
+        self.e_ip_3.setText(ip_s[2])
+        self.e_ip_4.setText("255")
 
 
-            ip_ = str(ip_s[0]) + "." + str(ip_s[1]) + "." + str(ip_s[2]) + "."
+        ip_ = str(ip_s[0]) + "." + str(ip_s[1]) + "." + str(ip_s[2]) + "."
 
 
-            try:
-                import queue
-                ip_q = queue.Queue()
+        try:
+            import queue
+            ip_q = queue.Queue()
 
-                for last_ip in range(0, 100):
-                    ip = ip_+str(last_ip)
-                    ip_q.put(ip)
-                    tmp = arp.arp_pro(1)
-                    tmp.set_ip(ip)
-                    tmp.start()
-                    tmp.wait()
-                # arp_pro = arp.arp_thread_pool(256, ip_q)
-                # arp_pro.run()
+            for last_ip in range(0, 5):
+                ip = ip_+str(last_ip)
+                ip_q.put(ip)
+                tmp = arp.test(ip)
+                tmp.start()
+                tmp.wait()
+            # arp_pro = arp.arp_thread_pool(256, ip_q)
+            # arp_pro.run()
 
-                print("chk queue content")
+            print("chk queue content")
 
-            except Exception as e:
-                print(e)
-            else:
-                print("end")
+        except Exception as e:
+            print(e)
+        else:
+            print("end")
 
     def arp_update(self, value):
         self.arp_progressbar.setValue(self.arp_progressbar.value() + 1)

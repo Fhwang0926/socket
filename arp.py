@@ -202,10 +202,12 @@ class test(QThread):
 
     def __init__(self, ip):
         super().__init__()
+        import ping
         self.ip = ip
-        pass
+
     def run(self):
         # QThread.time(1)
+        # ping(ip)
         print(self.ip, "is run")
 
 
