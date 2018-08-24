@@ -8,11 +8,15 @@ import select
 import random
 import asyncore
 from PyQt5.QtCore import *
+from multiprocessing import Process
+import concurrent.futures
 
-class PING(QThread):
+# class PING(QThread):
+class PING:
 
 
     def __init__(self):
+        super().__init__()
         self.VERBOSE = False
 
         self.ICMP_ECHO_REQUEST = 8  # Seems to be the same on Solaris.
@@ -28,6 +32,20 @@ class PING(QThread):
         # self.__all__ = ['create_packet', 'do_one', 'ping', 'PingQuery', 'multi_ping_query']
         # self.__all__ = ['create_packet', 'do_one', 'ping']
 
+    def chk_ttl(self, ttl):
+        try:
+            mapping = {
+                "255": "Stratus",
+                "64": "Linux",
+                "255": "Linux",
+                "32": "Windows",
+                "128": "Windows",
+                "256": "Cisco",
+            }
+            rs = mapping[str(ttl)]
+        except:
+            rs = "????"
+        return rs
 
     def checksum(self, source_string):
         # I'm not too confident that this is right but testing seems to
@@ -110,31 +128,47 @@ class PING(QThread):
                 return
             time_received = time.time()
             rec_packet, addr = my_socket.recvfrom(1024)
+            icmp_ttl = rec_packet[22]
             icmp_header = rec_packet[20:28]
             type, code, checksum, p_id, sequence = struct.unpack(
                 'bbHHh', icmp_header)
             if p_id == packet_id:
-                return time_received - time_sent
+                return [icmp_ttl, time_received - time_sent]
             time_left -= time_received - time_sent
             if time_left <= 0:
                 return
 
 
-    def ping(self, dest_addr, timeout=2, count=2):
+    def ping(self, dest_addr, timeout=1, count=1):
         avg = 0
         suc = 0
 
         for i in range(count):
             if self.VERBOSE: print('ping {}...'.format(dest_addr))
-            delay = self.do_one(dest_addr, timeout)
+
+            result = self.do_one(dest_addr, timeout)
+            if result != None:
+                delay = result[1]
+                ttl = result[0]
+            else:
+                delay = None
+                ttl = None
             if delay == None:
                 if self.VERBOSE: print('failed. (Timeout within {} seconds.)'.format(timeout))
             else:
                 delay = round(delay * 1000.0, 4)
                 avg += delay
                 suc += 1
-                if self.VERBOSE: print('get ping in {} milliseconds.'.format(delay))
+                if self.VERBOSE: print('get ping in {} milliseconds. TTL is {}'.format(delay, ttl))
         return (avg / suc) if avg else None
+
+
+    def run_th_ping(self, ip_list):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+            # Start the load operations and mark each future with its URL
+            for ip in ip_list:
+                executor.submit(self.ping, ip)
+                print("excute function", ip)
 
 
 # class PingQuery(asyncore.dispatcher):
@@ -252,23 +286,23 @@ class PING(QThread):
 if __name__ == '__main__':
 
     # Testing
-    # ping('172.30.1.254');
-    # print('')
-    # start = time.time()
-    # for x in range(100):
-    #   ping('google.com');
-    # end = time.time()
-    # print("time", end - start)
+    start = time.time()
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(('8.8.8.8', 0))
+    ip_s = s.getsockname()[0].split(".")
 
-    # host_list = ['google.com', '127.0.0.1']
-    # for host, ping in multi_ping_query(host_list).items():
-    #     print(host, '=', ping)
-
+    ip_ = str(ip_s[0]) + "." + str(ip_s[1]) + "." + str(ip_s[2]) + "."
+    th_list = []
+    for last_ip in range(0, 255):
+        ip = ip_ + str(last_ip)
+        th_list.append(ip)
+        print("[+] append is ", ip)
+        # ip_q.put(ip)
+        # tmp.ping(ip)
     tmp = PING()
     tmp.VERBOSE = True
-    tmp.ping('172.30.1.254');
-    start = time.time()
-    for x in range(10):
-        tmp.ping('google.com');
+    proc = Process(target=tmp.run_th_ping, args=(th_list,))
+    proc.start()
+    proc.join()
     end = time.time()
     print("end:", end-start)

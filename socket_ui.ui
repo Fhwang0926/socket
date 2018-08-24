@@ -681,7 +681,7 @@ You choice All or one</string>
            </widget>
           </item>
           <item>
-           <widget class="QTableWidget" name="tableWidget">
+           <widget class="QTableWidget" name="arpTable">
             <attribute name="horizontalHeaderCascadingSectionResizes">
              <bool>true</bool>
             </attribute>
@@ -724,7 +724,7 @@ You choice All or one</string>
             </column>
             <column>
              <property name="text">
-              <string>Ping Speed</string>
+              <string>Ping Speed [ms]</string>
              </property>
             </column>
             <item row="0" column="0">

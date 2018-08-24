@@ -2,15 +2,12 @@
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from socket import *
-import sys, os, wmi, arp, requests, json, ssl
+import sys, os, requests, json, ssl, arp, time
 
 import server as s
 import client as c
-import concurrent.futures
-
-
-from urllib.parse import urlparse
 import http.client as http_
+
 form_class = uic.loadUiType("socket_ui.ui")[0]
 
 class MyWindow(QMainWindow, form_class):
@@ -27,7 +24,7 @@ class MyWindow(QMainWindow, form_class):
 
         self.th_client = c.client_thread()
         self.th_server = s.server_thread()
-        self.th_arp_ping = arp.ping()
+        self.th_arp = arp.ARP()
         ################################################## server_side
         self.btn_server_run.clicked.connect(self.run_server_ex)
         self.btn_server_send.clicked.connect(self.common_input_send)
@@ -53,8 +50,8 @@ class MyWindow(QMainWindow, form_class):
         # self.chk_http2_btn.clicked.connect(self.http2_chk)
         ################################################## arp side
         self.scan_btn.clicked.connect(self.run_arp)
-        self.th_arp_ping.arp_find_sig.connect(self.arp_update)
-        self.th_arp_ping.arp_ex_sig.connect(self.arp_ex)
+        # self.th_arp_ping.arp_find_sig.connect(self.arp_update)
+        # self.th_arp_ping.arp_ex_sig.connect(self.arp_ex)
 
 
 
@@ -350,8 +347,11 @@ class MyWindow(QMainWindow, form_class):
 
 
     def run_arp(self):
-        ip_s = gethostbyname(gethostname()).split(".")
-
+        os.system("netsh interface ip delete arpcache")
+        # ip_s = gethostbyname(gethostname()).split(".")
+        s = socket(AF_INET, SOCK_DGRAM)
+        s.connect(('8.8.8.8', 0))
+        ip_s = s.getsockname()[0].split(".")
 
         self.s_ip_1.setText(ip_s[0])
         self.s_ip_2.setText(ip_s[1])
@@ -362,37 +362,52 @@ class MyWindow(QMainWindow, form_class):
         self.e_ip_2.setText(ip_s[1])
         self.e_ip_3.setText(ip_s[2])
         self.e_ip_4.setText("255")
-
-
-        ip_ = str(ip_s[0]) + "." + str(ip_s[1]) + "." + str(ip_s[2]) + "."
-
+        ip_s[3] = ""
+        ip_ = ".".join(ip_s)
 
         try:
-            import queue
-            ip_q = queue.Queue()
+            ip_list = []
+            {ip_list.append(ip_ + str(last_ip)) : last_ip for last_ip in range(0, 256)}
+            self.th_arp.set_ip_list(ip_list)
+            ###################################################### here is blocking area
+            self.th_arp.set_ip_list(ip_list)
+            self.th_arp.run()
+            self.th_arp.wait()
+            self.th_arp.update_mac_info(ip_, self.th_arp.Q)
+            ######################################################
+            self.arpTable.clear()
+            index = 0
+            self.arpTable.setRowCount(len(self.th_arp.hosts_info))
+            for host in self.th_arp.hosts_info.keys():
+                self.arp_table_update(self.th_arp.hosts_info, host, index)
+                print("is insert?", self.arpTable.rowCount(), index)
+                index += 1
+                print(self.th_arp.hosts_info[host])
 
-            for last_ip in range(0, 5):
-                ip = ip_+str(last_ip)
-                ip_q.put(ip)
-                tmp = arp.test(ip)
-                tmp.start()
-                tmp.wait()
-            # arp_pro = arp.arp_thread_pool(256, ip_q)
-            # arp_pro.run()
 
-            print("chk queue content")
-
+            print("start arp Process && end")
         except Exception as e:
             print(e)
         else:
             print("end")
 
+    def arp_table_update(self, host_info, host, index):
+        time.sleep(1)
+        print(host, self.th_arp.hosts_info[host])
+        # self.arpTable.setItem(self.arpTable.rowCount(), 0, host)  # PC Name
+        if (host): self.arpTable.setItem(index, 1, QTableWidgetItem(host))  # IP
+        if ("MAC" in self.th_arp.hosts_info[host].keys()): self.arpTable.setItem(index, 2, QTableWidgetItem(
+            self.th_arp.hosts_info[host]["MAC"]))  # MAC
+        if ("OS" in self.th_arp.hosts_info[host].keys()): self.arpTable.setItem(index, 3, QTableWidgetItem(
+            self.th_arp.hosts_info[host]["OS"]))  # OS
+        if ("DELAY" in self.th_arp.hosts_info[host].keys()): self.arpTable.setItem(index, 4, QTableWidgetItem(
+            self.th_arp.hosts_info[host]["DELAY"]))  # PING
+        print(host, self.th_arp.hosts_info[host]["DELAY"])
+        self.arp_update(1)
+
+
     def arp_update(self, value):
         self.arp_progressbar.setValue(self.arp_progressbar.value() + 1)
-
-
-    def arp_update_list(self, data_dic):
-        print(data_dic)
 
     #beta area
     def http2_chk(self):
