@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tab_col">
       <property name="currentIndex">
-       <number>3</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="Server">
        <attribute name="title">
@@ -767,12 +767,71 @@ You choice All or one</string>
          <rect>
           <x>10</x>
           <y>90</y>
-          <width>669</width>
-          <height>28</height>
+          <width>841</width>
+          <height>61</height>
          </rect>
         </property>
         <property name="text">
          <string>Check HTTP/2.0 Protocol</string>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="input_url_b">
+        <property name="geometry">
+         <rect>
+          <x>80</x>
+          <y>20</y>
+          <width>771</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="placeholderText">
+         <string>write full FQDN and HTTP/HTTP Protocol</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="L_url_b">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>20</y>
+          <width>111</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>15</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>URL</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="L_url_rs_2">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>190</y>
+          <width>111</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>15</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Result</string>
+        </property>
+       </widget>
+       <widget class="QPlainTextEdit" name="res_text_b">
+        <property name="geometry">
+         <rect>
+          <x>13</x>
+          <y>236</y>
+          <width>841</width>
+          <height>501</height>
+         </rect>
         </property>
        </widget>
       </widget>
@@ -810,8 +869,16 @@ You choice All or one</string>
     <addaction name="actionarp"/>
     <addaction name="menuCheck_Update"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="action_Auther_Fhwang"/>
+    <addaction name="action_e_mail_hdh0926_naver_com"/>
+   </widget>
    <addaction name="menu"/>
    <addaction name="menuhttp"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionserver">
@@ -869,6 +936,16 @@ You choice All or one</string>
    </property>
    <property name="text">
     <string>Auto</string>
+   </property>
+  </action>
+  <action name="action_Auther_Fhwang">
+   <property name="text">
+    <string>@Auther : Fhwang</string>
+   </property>
+  </action>
+  <action name="action_e_mail_hdh0926_naver_com">
+   <property name="text">
+    <string>@e-mail : hdh0926@naver.com</string>
    </property>
   </action>
  </widget>

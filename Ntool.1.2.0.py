@@ -47,7 +47,8 @@ class MyWindow(QMainWindow, form_class):
         self.input_url.setText("www.f1security.co.kr")
         self.http_req.setPlainText("GET / HTTP/1.1\r\nhost: " + str(self.input_url.text()) + "\r\n\r\n")
         self.input_url.textChanged.connect(self.http_req_update)
-        # self.chk_http2_btn.clicked.connect(self.http2_chk)
+        self.chk_http2_btn.clicked.connect(self.http2_chk)
+        self.input_url_b.returnPressed.connect(self.http2_chk)
         ################################################## arp side
         self.scan_btn.clicked.connect(self.run_arp)
         # self.th_arp_ping.arp_find_sig.connect(self.arp_update)
@@ -412,8 +413,13 @@ class MyWindow(QMainWindow, form_class):
     #beta area
     def http2_chk(self):
         rs = ""
-        self.http_res.setPlainText("")
-        domain = self.input_url.text()
+        self.res_text_b.setPlainText("")
+        domain = self.input_url_b.text()
+        print()
+        if(domain in '.'):
+            self.msg_box("Error", "Not URL "+domain)
+            return
+
         headers = {'Accept': '*/*', 'user-agent': 'h2-check/1.0.1', 'Connection': 'Upgrade, HTTP2-Settings',
                    'Upgrade': 'h2c', 'HTTP2-Settings': '<base64url encoding of HTTP/2 SETTINGS payload>'}
         # send GET request with the upgrade headers
@@ -424,7 +430,6 @@ class MyWindow(QMainWindow, form_class):
         # the status code must be 200 ok or something else based on http1.1 if the server does not support http/2
         else:
             rs += "[-] "+domain+' HTTP Not Support\n'
-
         ctx = ssl.create_default_context()
         ctx.set_alpn_protocols(['h2', 'spdy/3', 'http/1.1'])
 
@@ -438,7 +443,7 @@ class MyWindow(QMainWindow, form_class):
             rs+= '[+]'+domain+' HTTPS Support\n'
         else:
             rs+= '[-]'+domain+' HTTPS Not Support\n'
-        self.http_res.setPlainText(rs)
+        self.res_text_b.setPlainText(rs)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
